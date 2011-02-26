@@ -8,7 +8,7 @@ object M {
         server.start
 
         spawn {
-            val client = new SyncClient("/Users/lucastorri/Desktop/synctest-local/")
+            val client = new SyncClient("/Users/lucastorri/Desktop/synctest-local/", "127.0.0.1", false)
             client.start
         }
     }

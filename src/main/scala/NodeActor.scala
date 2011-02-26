@@ -15,11 +15,15 @@ import java.util.Date
 
 abstract class BaseActs(basepath: String) extends Actor {
     
-    protected def serveract = {
-        var client: OutputChannel[Any] = null
+    protected def sayhello(server: OutputChannel[Any], sendToServer: Boolean) = server ! ("hello", sendToServer)
+    
+    protected def waitclient: (OutputChannel[Any], Boolean) = receive {
+        case ("hello", sendToServer: Boolean) => return (sender, sendToServer)
+    }
+    
+    protected def upload = {
         receive {
-            case "hello" => {
-                client = sender
+            case "list" => {
                 sender ! RelativePathFile(recursiveListFiles(basepath), basepath).mkString("\n")
                 receive {
                     case ("giveme", files: String) => {
@@ -29,11 +33,10 @@ abstract class BaseActs(basepath: String) extends Actor {
                 }
             }
         }
-        client
     }
     
-    protected def clientact(server: OutputChannel[Any]) {
-        server ! "hello"
+    protected def download(server: OutputChannel[Any]) {
+        server ! "list"
         receive {
             case f: String => {
                 val serverFiles = RelativePathFile(f)
@@ -57,23 +60,37 @@ class SyncServer(basepath: String) extends BaseActs(basepath) {
     def act {
         alive(9011)
         register('filesync, self)
+        val (sender, sendToServer) = waitclient
         
         loop {
-            val client = serveract
-            clientact(client)
+            if (sendToServer) {
+                download(sender)
+                upload
+            } else {
+                upload
+                download(sender)
+            }
         }
 
     }
 }
 
-class SyncClient private (basepath: String, server: AbstractActor) extends BaseActs(basepath) {
+class SyncClient private (basepath: String, server: AbstractActor, sendToServer: Boolean) extends BaseActs(basepath) {
     
-    def this(basepath: String) = this(basepath, select(Node("127.0.0.1", 9011), 'filesync))
+    def this(basepath: String, serverip: String, sendToServer: Boolean) = this(basepath, select(Node(serverip, 9011), 'filesync), sendToServer)
 
     def act {
+        sayhello(server, sendToServer)
+        
         loop {
-            clientact(server)
-            serveract
+            if (sendToServer) {
+                upload
+                download(server)
+            } else {
+                download(server)
+                upload
+            }
+
             Thread.sleep(10000)
         }
     }

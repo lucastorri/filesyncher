@@ -65,10 +65,8 @@ class SyncServer(basepath: String) extends BaseActs(basepath) {
         loop {
             if (sendToServer) {
                 download(sender)
-                upload
             } else {
                 upload
-                download(sender)
             }
         }
 
@@ -85,10 +83,8 @@ class SyncClient private (basepath: String, server: AbstractActor, sendToServer:
         loop {
             if (sendToServer) {
                 upload
-                download(server)
             } else {
                 download(server)
-                upload
             }
 
             Thread.sleep(10000)

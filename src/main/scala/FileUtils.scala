@@ -3,6 +3,7 @@ package a
 import java.io.File
 import java.util.zip.{ZipOutputStream, ZipInputStream, ZipEntry}
 import java.io.{InputStream, OutputStream, FileInputStream, FileOutputStream, ByteArrayOutputStream, ByteArrayInputStream}
+import java.security.MessageDigest
 
 
 object FileStatus extends Enumeration {
@@ -24,14 +25,17 @@ object FileUtils {
     
     def recursiveListFiles(path: String): List[File] = recursiveListTree(path).filter(_.isFile).toList
     
-    def filehash(f: File) = content(f).hashCode
+    def filehash(f: File) = {
+        var digest = MessageDigest.getInstance("MD5")
+        digest.digest(content(f)).map(_.asInstanceOf[Int]).sum
+    }
     
     def content(f: File) = {
         var fin = new FileInputStream(f)
         var bout = new ByteArrayOutputStream
         streamcopy(fin, bout)
         fin.close
-        new String(bout.toByteArray)
+        bout.toByteArray
     }
     
     def delete(files: List[File]) {
@@ -44,6 +48,7 @@ object FileUtils {
         var byteout = new ByteArrayOutputStream
         var out = new ZipOutputStream(byteout)
         files.foreach { f =>
+            println("zip: " + f.getAbsolutePath)
             var in = new FileInputStream(f)
             out.putNextEntry(new ZipEntry(f.toString.replace(basepath, "")))
             
@@ -63,8 +68,10 @@ object FileUtils {
         
         var entry = zipinputstream.getNextEntry
         while (entry != null) {
-            var f = new File(dest.getAbsolutePath + File.separator + entry.getName)
-            if (f.isFile) f.getParent.mkdirs
+            var f = new File(dest.getAbsolutePath + File.separator + fixpath(entry.getName))
+            f.getParentFile.mkdirs
+            if (!f.exists) f.createNewFile
+            println("unzip: " + f.getAbsolutePath)
             var fout = new FileOutputStream(f)
             streamcopy(zipinputstream, fout, buf)
             fout.close
@@ -74,6 +81,8 @@ object FileUtils {
         }
         zipinputstream.close
     }
+    
+    def fixpath(path: String) = path.replace("/", File.separator).replace("""\""", File.separator)
     
     def streamcopy(in: InputStream, out: OutputStream, buf: Array[Byte] = Array.ofDim[Byte](1024)) {
         var len = 0

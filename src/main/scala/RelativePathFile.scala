@@ -1,14 +1,14 @@
 package a
 
 import java.io.File
-import FileUtils.filehash
+import a.FileUtils._
 import a.FileStatus._
 import a.RelativePathFile._
 
 class RelativePathFile(val pathPrefix: String, val relativePath: String, override val hashCode: Int, val timestamp: Long) {
     
-    def this(f: File, prefix: String) = this(generatePathPrefix(prefix), 
-                                                f.getAbsolutePath.replace(generatePathPrefix(prefix), ""),
+    def this(f: File, prefix: String) = this(fixPathPrefix(prefix), 
+                                                f.getAbsolutePath.replace(fixPathPrefix(prefix), ""),
                                                 filehash(f),
                                                 f.lastModified)
     
@@ -24,7 +24,7 @@ class RelativePathFile(val pathPrefix: String, val relativePath: String, overrid
 }
 object RelativePathFile {
     
-    def generatePathPrefix(path: String) = if (path.endsWith(File.separator)) path.dropRight(1) else path
+    def fixPathPrefix(path: String) = if (path.endsWith(File.separator)) path.dropRight(1) else path
     
     def apply(files: List[File], pathPrefix: String) = files.map(new RelativePathFile(_, pathPrefix))
     
@@ -32,7 +32,7 @@ object RelativePathFile {
     
     def apply(str: String, basepath: String = "") = str.split("\n").filterNot(_.trim.isEmpty).map { l =>
         l match {
-            case RelativePathFileRE(relativePath, hashCode, timestamp) => new RelativePathFile(basepath, relativePath, hashCode.toInt, timestamp.toLong)
+            case RelativePathFileRE(relativePath, hashCode, timestamp) => new RelativePathFile(basepath, fixpath(relativePath), hashCode.toInt, timestamp.toLong)
         }
     }.toList
     

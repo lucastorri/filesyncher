@@ -60,9 +60,10 @@ class SyncServer(basepath: String) extends BaseActs(basepath) {
     def act {
         alive(9011)
         register('filesync, self)
-        val (sender, sendToServer) = waitclient
         
         loop {
+            var (sender, sendToServer) = waitclient
+            
             if (sendToServer) {
                 download(sender)
             } else {
@@ -73,14 +74,15 @@ class SyncServer(basepath: String) extends BaseActs(basepath) {
     }
 }
 
-class SyncClient private (basepath: String, server: AbstractActor, sendToServer: Boolean) extends BaseActs(basepath) {
+class SyncClient private (basepath: String, server: AbstractActor, var sendToServer: Boolean) extends BaseActs(basepath) {
     
     def this(basepath: String, serverip: String, sendToServer: Boolean) = this(basepath, select(Node(serverip, 9011), 'filesync), sendToServer)
 
     def act {
-        sayhello(server, sendToServer)
         
         loop {
+            sayhello(server, sendToServer)
+            
             if (sendToServer) {
                 upload
             } else {

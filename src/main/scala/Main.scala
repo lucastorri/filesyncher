@@ -1,4 +1,5 @@
 import co.torri.filesyncher._
+import co.torri.filesyncher.FileUtils._
 import scala.concurrent.ops._
 import java.io._
 import java.util.Properties
@@ -13,13 +14,18 @@ object Sync {
         var confs = new Properties
         confs.load(new FileInputStream(configFile))
         var serverip = confs.get("server.ip").toString.trim
+        var tcpport = confs.get("tcp.port").toString.trim
         var serverbasepath = confs.get("server.basepath").toString.trim
         var clientbasepath = confs.get("client.basepath").toString.trim
         var defaultflow = confs.get("default.flow").toString.trim
+        var defaultmonitor = confs.get("default.monitor").toString.trim
+        var includeonly = confs.get("include.only").toString.trim
+        var exclude = confs.get("exclude").toString.trim
         
         var actor = args.toList match {
             case ("client" :: Nil) => {
-                var client = new SyncClient(clientbasepath, serverip, decodeSendToServer(defaultflow))
+                var filter = getFileFilter(includeonly, exclude);
+                var client = new SyncClient(clientbasepath, serverip, decodeSendToServer(defaultflow), filter, defaultmonitor)
                 spawn {
                     Thread.sleep(1000)
                     loop {
@@ -35,6 +41,8 @@ object Sync {
                                 }
                             }
                             case "status" => println("flow: " + encodeSendToServer(client.sendToServer))
+                            case "debug" => debug.on = true; println("Debug on")
+                            case "!debug" => debug.on = false; println("Debug off")
                             case "" =>
                             case null => System.exit(0)
                             case _ => println("Unknown command: " + line)
@@ -46,7 +54,7 @@ object Sync {
             case _ => new SyncServer(serverbasepath)
         }
         actor.start
-        println("=> starting " + actor)
+        debug("=> starting " + actor)
     }
     
     val decodeSendToServer: PartialFunction[String, Boolean] = {

@@ -1,9 +1,10 @@
 package co.torri.filesyncher
 
-import java.io.File
+import java.io.{File, FileFilter}
 import java.util.zip.{ZipOutputStream, ZipInputStream, ZipEntry}
 import java.io.{InputStream, OutputStream, FileInputStream, FileOutputStream, ByteArrayOutputStream, ByteArrayInputStream}
 import java.security.MessageDigest
+import co.torri.filesyncher.FileUtils._
 
 
 object FileStatus extends Enumeration {
@@ -23,7 +24,7 @@ object FileUtils {
         these ++ these.filter(_.isDirectory).flatMap(recursiveListTree)
     }
     
-    def recursiveListFiles(path: String): List[File] = recursiveListTree(path).filter(_.isFile).toList
+    def recursiveListFiles(path: String, filter: FileFilter = AcceptAllFileFilter): List[File] = recursiveListTree(path).filter(f => f.isFile && filter.accept(f)).toList
     
     def filehash(f: File) = {
         var digest = MessageDigest.getInstance("MD5")
@@ -91,4 +92,51 @@ object FileUtils {
             if (len > 0) out.write(buf, 0, len)
         } while (len > 0)
     }
+    
+    def getFileFilter(includeOnly: String, exclude: String) = (includeOnly, exclude) match {
+        case (null, null) | ("", "") | (null, "") | ("", null) => AcceptAllFileFilter
+        case (null, _) => new IncludeOrExludeFileFilter("", exclude)
+        case (_, null) => new IncludeOrExludeFileFilter(includeOnly, "")
+        case _ => new IncludeOrExludeFileFilter(includeOnly, exclude)
+    }
+}
+
+
+class FilesWatcher(path: String, filter: FileFilter, poltime: Long = 5000) {
+    
+    var filestimestamp = getLastFileList
+    
+    def waitchange {
+        var noChanges = true
+        while({noChanges = noneAddedOrRemoved(getLastFileList); noChanges}) {
+            Thread.sleep(poltime)
+        }
+    }
+    
+    private def noneAddedOrRemoved(newFiles: Map[File, Long]) = {
+        filestimestamp.keys == newFiles.keys ||
+        filestimestamp.filterNot(p => p._2 == newFiles(p._1)).isEmpty
+    }
+    
+    private def getLastFileList = recursiveListFiles(path, filter).map(f => (f, f.lastModified)).toMap
+}
+
+class IncludeOrExludeFileFilter(includeOnly: String, exclude: String) extends FileFilter {
+    
+    def accept(f: File) = {
+        if (includeOnly != "") {
+            includeOnly.split(";").map(r => f.getAbsolutePath.matches(toRegex(r))).reduceLeft(_||_)
+        } else {
+            !exclude.split(";").map(r => f.getAbsolutePath.matches(toRegex(r))).reduceLeft(_||_)
+        }
+    }
+    
+    private def toRegex(str: String) = str.replace(".", "\\.").replace("*", ".*")
+    
+    override def toString = (includeOnly, exclude).toString
+}
+
+object AcceptAllFileFilter extends FileFilter {
+    def accept(f: File) = true
+    override def toString = "(,)"
 }

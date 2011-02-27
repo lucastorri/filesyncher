@@ -1,4 +1,4 @@
-package a
+package co.torri.filesyncher
 
 import java.io.File
 import java.util.zip.{ZipOutputStream, ZipInputStream, ZipEntry}

@@ -1,4 +1,4 @@
-import a._
+import co.torri.filesyncher._
 import scala.concurrent.ops._
 
 object M {

@@ -1,9 +1,9 @@
-package a
+package co.torri.filesyncher
 
 import java.io.File
-import a.FileUtils._
-import a.FileStatus._
-import a.RelativePathFile._
+import co.torri.filesyncher.FileUtils._
+import co.torri.filesyncher.FileStatus._
+import co.torri.filesyncher.RelativePathFile._
 
 class RelativePathFile(val pathPrefix: String, val relativePath: String, override val hashCode: Int, val timestamp: Long) {
     

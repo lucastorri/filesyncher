@@ -1,14 +1,14 @@
-package a
+package co.torri.filesyncher
 
 import scala.actors._
 import scala.actors.Actor._
 import scala.actors.remote._
 import scala.actors.remote.RemoteActor._
 import java.io.File
-import a.FileUtils._
-import a.FileStatus._
-import a.RelativePathFile
-import a.RelativePathFile._
+import co.torri.filesyncher.FileUtils._
+import co.torri.filesyncher.FileStatus._
+import co.torri.filesyncher.RelativePathFile
+import co.torri.filesyncher.RelativePathFile._
 import java.io.{InputStream, OutputStream, FileInputStream, FileOutputStream, ByteArrayOutputStream, ByteArrayInputStream}
 import java.util.Date
 

@@ -14,7 +14,7 @@ object Sync {
         var confs = new Properties
         confs.load(new FileInputStream(configFile))
         var serverip = confs.get("server.ip").toString.trim
-        var tcpport = confs.get("tcp.port").toString.trim
+        var tcpport = confs.get("tcp.port").toString.trim.toInt
         var serverbasepath = confs.get("server.basepath").toString.trim
         var clientbasepath = confs.get("client.basepath").toString.trim
         var defaultflow = confs.get("default.flow").toString.trim
@@ -24,8 +24,9 @@ object Sync {
         
         var actor = args.toList match {
             case ("client" :: Nil) => {
-                var filter = getFileFilter(includeonly, exclude);
-                var client = new SyncClient(clientbasepath, serverip, decodeSendToServer(defaultflow), filter, defaultmonitor)
+                var filter = getFileFilter(includeonly, exclude)
+                var client = new SyncClient(clientbasepath, serverip, tcpport, decodeSendToServer(defaultflow), filter, defaultmonitor)
+                debug("Server: " + serverip + ":" + tcpport)
                 spawn {
                     Thread.sleep(1000)
                     loop {
@@ -40,7 +41,10 @@ object Sync {
                                     println("Receiving files from server")
                                 }
                             }
-                            case "status" => println("flow: " + encodeSendToServer(client.sendToServer))
+                            case "status" => {
+                                println("flow: " + encodeSendToServer(client.sendToServer))
+                                println("debug: " + (if (debug.on) "on" else "off"))
+                            }
                             case "debug" => debug.on = true; println("Debug on")
                             case "!debug" => debug.on = false; println("Debug off")
                             case "" =>
@@ -51,7 +55,7 @@ object Sync {
                 }
                 client
             }
-            case _ => new SyncServer(serverbasepath)
+            case _ => new SyncServer(serverbasepath, tcpport, defaultmonitor)
         }
         actor.start
         debug("=> starting " + actor)

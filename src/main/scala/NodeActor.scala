@@ -17,11 +17,18 @@ import java.util.Date
 
 abstract class BaseActs(basepath: String) extends Actor {
     
-    protected def sayhello(server: OutputChannel[Any], sendToServer: Boolean, filter: FileFilter, monitor: String) = server ! ("hello", sendToServer, filter.toString, monitor)
+    protected def sayhello(server: OutputChannel[Any], sendToServer: Boolean, filter: FileFilter) = {
+        debug("=> calling server")
+        server ! ("hello", sendToServer, filter.toString)
+    }
     
-    private val FilterRE = "\\((\\w*),(\\w*)\\)".r
-    protected def waitclient(basepath: String): (OutputChannel[Any], Boolean, FileFilter) = receive {
-        case ("hello", sendToServer: Boolean, FilterRE(includeOnly,exclude), monitor) => return (sender, sendToServer, getFileFilter(includeOnly, exclude), parseMonitor(basepath, monitor, getFileFilter(includeOnly, exclude)))
+    private val FilterRE = "\\((.*),(.*)\\)".r
+    protected def waitclient: (OutputChannel[Any], Boolean, FileFilter) = {
+        debug("=> waiting client")
+        receive {
+            case ("hello", sendToServer: Boolean, FilterRE(includeOnly,exclude)) => return (sender, sendToServer, getFileFilter(includeOnly, exclude))
+            case a: Any => debug("No match with client message: " + a); return (null, false, null)
+        }
     }
     
     protected def upload = {
@@ -60,47 +67,53 @@ abstract class BaseActs(basepath: String) extends Actor {
 
 }
 object BaseActs {
-    private val TimeMonitorRE = """(\d*)\w*(\s)""".r
-    def parseMonitor(basepath: String, token: String, watcher: FilesFilter): () => Unit = token match {
+    private val TimeMonitorRE = """(\d+)\s*(\w)""".r
+    private val FileChangeMonitorRE = """filechange\s*\((\d+)\)""".r
+    def parseMonitor(basepath: String, monitor: String, filter: FileFilter): () => Unit = monitor match {
         case TimeMonitorRE(time, "s") => {() => Thread.sleep(time.toInt * 1000) }
         case TimeMonitorRE(time, "m") => {() => Thread.sleep(time.toInt * 1000 * 60) }
         case TimeMonitorRE(time, "h") => {() => Thread.sleep(time.toInt * 1000 * 60 * 60) }
-        case "filechange" => var watcher = new FilesWatcher(basepath, filter); {() => watcher.waitchange }
+        case FileChangeMonitorRE(poltime) => var watcher = new FilesWatcher(basepath, filter, poltime.toInt); {() => watcher.waitchange }
     }
 }
 
-class SyncServer(basepath: String) extends BaseActs(basepath) {
+class SyncServer(basepath: String, port: Int, monitor: String) extends BaseActs(basepath) {
 
     def act {
-        alive(9011)
+        alive(port)
         register('filesync, self)
         
         loop {
-            var (sender, sendToServer, filter) = waitclient(basepath)
+            var (sender, sendToServer, filter) = waitclient
             
             if (sendToServer) {
                 download(sender)
             } else {
                 upload
+                debug("Waiting")
+                parseMonitor(basepath, monitor, filter)()
+                debug("Finished waiting")
             }
         }
 
     }
 }
 
-class SyncClient private (basepath: String, server: AbstractActor, var sendToServer: Boolean, var filter: FileFilter, waitfor: () => Unit, monitor: String) extends BaseActs(basepath) {
+class SyncClient private(basepath: String, server: AbstractActor, var sendToServer: Boolean, filter: FileFilter, waitfor: () => Unit) extends BaseActs(basepath) {
     
-    def this(basepath: String, serverip: String, sendToServer: Boolean, filter: FileFilter, monitor: String) = 
-                            this(basepath, select(Node(serverip, 9011), 'filesync), sendToServer, filter, parseMonitor(monitor, filter), monitor)
+    def this(basepath: String, serverip: String, port: Int, sendToServer: Boolean, filter: FileFilter, monitor: String) = 
+                            this(basepath, select(Node(serverip, port), 'filesync), sendToServer, filter, parseMonitor(basepath, monitor, filter))
 
     def act {
         
         loop {
-            sayhello(server, sendToServer, filter, monitor)
+            sayhello(server, sendToServer, filter)
             
             if (sendToServer) {
                 upload
+                debug("Waiting")
                 waitfor
+                debug("Finished waiting")
             } else {
                 download(server)
             }

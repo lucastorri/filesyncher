@@ -49,7 +49,7 @@ object FileUtils {
         var byteout = new ByteArrayOutputStream
         var out = new ZipOutputStream(byteout)
         files.foreach { f =>
-            println("zip: " + f.getAbsolutePath)
+            debug("zip: " + f.getAbsolutePath)
             var in = new FileInputStream(f)
             out.putNextEntry(new ZipEntry(f.toString.replace(basepath, "")))
             
@@ -72,7 +72,7 @@ object FileUtils {
             var f = new File(dest.getAbsolutePath + File.separator + fixpath(entry.getName))
             f.getParentFile.mkdirs
             if (!f.exists) f.createNewFile
-            println("unzip: " + f.getAbsolutePath)
+            debug("unzip: " + f.getAbsolutePath)
             var fout = new FileOutputStream(f)
             streamcopy(zipinputstream, fout, buf)
             fout.close
@@ -114,8 +114,8 @@ class FilesWatcher(path: String, filter: FileFilter, poltime: Long = 5000) {
     }
     
     private def noneAddedOrRemoved(newFiles: Map[File, Long]) = {
-        filestimestamp.keys == newFiles.keys ||
-        filestimestamp.filterNot(p => p._2 == newFiles(p._1)).isEmpty
+        filestimestamp.keys == newFiles.keys &&
+        filestimestamp.filter(p => p._2 != newFiles(p._1)).isEmpty
     }
     
     private def getLastFileList = recursiveListFiles(path, filter).map(f => (f, f.lastModified)).toMap

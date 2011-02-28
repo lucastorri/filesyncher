@@ -1,5 +1,6 @@
 package co.torri.filesyncher
 
+import scala.util.matching.Regex
 import java.io.{File, FileFilter}
 import java.util.zip.{ZipOutputStream, ZipInputStream, ZipEntry}
 import java.io.{InputStream, OutputStream, FileInputStream, FileOutputStream, ByteArrayOutputStream, ByteArrayInputStream}
@@ -120,8 +121,10 @@ class FilesWatcher(path: String, filter: FileFilter, poltime: Long = 5000) {
 }
 
 class ExcludeFileFilter(exclude: String) extends FileFilter {
-    def accept(f: File) = !exclude.split(";").map(r => f.getAbsolutePath.matches(toRegex(r))).reduceLeft(_||_)
+    private val windowsFileRegex =  new Regex("^\\w:")
+    def accept(f: File) = !exclude.split(";").map(r => toUnixPath(f.getAbsolutePath).matches(toRegex(r))).reduceLeft(_||_)
     private def toRegex(str: String) = str.replace(".", "\\.").replace("*", ".*")
+    private def toUnixPath(path: String) = windowsFileRegex.replaceAllIn(path, "").replace("\\", "/")
     override def toString = exclude
 }
 

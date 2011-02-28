@@ -4,6 +4,8 @@ import scala.concurrent.ops._
 import java.io._
 import java.util.Properties
 import scala.PartialFunction
+import co.torri.filesyncher.log
+import co.torri.filesyncher.LogLevel._
 
 object Sync {
     
@@ -21,11 +23,12 @@ object Sync {
         var defaultmonitor = confs.get("default.monitor").toString.trim
         var exclude = confs.get("exclude").toString.trim
         
-        var actor = args.toList match {
+        args.toList match {
             case ("client" :: Nil) => {
                 var filter = getFileFilter(exclude)
                 var client = new SyncClient(clientbasepath, serverip, tcpport, decodeSendToServer(defaultflow), filter, defaultmonitor)
-                debug("Server: " + serverip + ":" + tcpport)
+                var notStarted = true
+                log(INFO, "Server to connect: " + serverip + ":" + tcpport)
                 spawn {
                     Thread.sleep(1000)
                     loop {
@@ -41,12 +44,23 @@ object Sync {
                                 }
                             }
                             case "status" => {
-                                println("flow: " + encodeSendToServer(client.sendToServer))
-                                println("debug: " + (if (debug.on) "on" else "off"))
+                                println("Flow: " + encodeSendToServer(client.sendToServer))
+                                println("Log: " + (if (log.on) "on" else "off"))
+                                println("Log level: " + log.level)
                             }
-                            case "debug" => debug.on = true; println("Debug on")
-                            case "!debug" => debug.on = false; println("Debug off")
+                            case "log" => log.on = true; println("Log on")
+                            case "!log" => log.on = false; println("Log off")
+                            case "info" => log.level = INFO
+                            case "fileop" => log.level = FILEOP
+                            case "debug" => log.level = DEBUG
                             case "" =>
+                            case "start" => {
+                                if (notStarted) {
+                                    notStarted = true
+                                    client.start
+                                    Thread.sleep(1500)
+                                }
+                            }
                             case null => System.exit(0)
                             case _ => println("Unknown command: " + line)
                         }
@@ -54,10 +68,12 @@ object Sync {
                 }
                 client
             }
-            case _ => new SyncServer(serverbasepath, tcpport, defaultmonitor)
+            case _ => {
+                new SyncServer(serverbasepath, tcpport, defaultmonitor).start
+                log.level = FILEOP
+                log(INFO, "Server started")
+            }
         }
-        actor.start
-        debug("=> starting " + actor)
     }
     
     val decodeSendToServer: PartialFunction[String, Boolean] = {

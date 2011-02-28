@@ -8,36 +8,40 @@ import java.io.{File, FileFilter}
 import co.torri.filesyncher.FileUtils._
 import co.torri.filesyncher.FileStatus._
 import co.torri.filesyncher.BaseActs._
-import co.torri.filesyncher.debug
 import co.torri.filesyncher.RelativePathFile
 import co.torri.filesyncher.RelativePathFile._
 import java.io.{InputStream, OutputStream, FileInputStream, FileOutputStream, ByteArrayOutputStream, ByteArrayInputStream}
-import java.util.Date
+import co.torri.filesyncher.log
+import co.torri.filesyncher.LogLevel._
 
 
 abstract class BaseActs(basepath: String) extends Actor {
     
     protected def sayhello(server: OutputChannel[Any], sendToServer: Boolean, filter: FileFilter) = {
-        debug("=> calling server")
-        server ! ("hello", sendToServer, filter.toString)
+        log(INFO, "Greeting server")
+        server ! ('hello, sendToServer, filter.toString)
     }
     
     protected def waitclient: (OutputChannel[Any], Boolean, FileFilter) = {
-        debug("=> waiting client")
+        log(INFO, "Waiting client")
         receive {
-            case ("hello", sendToServer: Boolean, exclude: String) => return (sender, sendToServer, getFileFilter(exclude))
-            case a: Any => debug("No match with client message: " + a); return (null, false, null)
+            case ('hello, sendToServer: Boolean, exclude: String) => {
+                log(INFO, "Client said 'hello'")
+                return (sender, sendToServer, getFileFilter(exclude))
+            }
         }
     }
     
     protected def upload(filter: FileFilter) = {
-        debug("=> upload")
+        log(INFO, "Uploading")
         receive {
-            case "list" => {
+            case 'list => {
+                log(DEBUG, "Listing files")
                 sender ! RelativePathFile(recursiveListFiles(basepath, filter), basepath).mkString("\n")
                 receive {
-                    case ("giveme", files: String) => {
+                    case ('giveme, files: String) => {
                         var filelist = RelativePathFile(files, basepath).map(rf => new File(rf.fullPath))
+                        log(DEBUG, "Files requested:\n" + filelist.mkString("\n"))
                         sender ! zip(basepath, filelist)
                     }
                 }
@@ -46,19 +50,25 @@ abstract class BaseActs(basepath: String) extends Actor {
     }
     
     protected def download(server: OutputChannel[Any], filter: FileFilter) {
-        debug("=> download")
-        server ! "list"
+        log(INFO, "Downloading")
+        server ! 'list
+        log(DEBUG, "Requesting list of files")
         receive {
             case f: String => {
                 val serverFiles = RelativePathFile(f)
                 val localfiles = RelativePathFile(recursiveListFiles(basepath, filter), basepath)
                 val filesdiff = contentdiff(serverFiles, localfiles)
+                log(DEBUG, "Calculating diff:\n" + filesdiff.mkString("\n"))
                 val newAndModified = filterNewAndModified(filesdiff).map(_._1).mkString("\n")
                 val deleted = filterDeleted(filesdiff).map(d => new File(d._2.fullPath))
                 delete(deleted)
-                server ! ("giveme" -> newAndModified)
+                server ! ('giveme -> newAndModified)
+                log(DEBUG, "Requested modified and new files")
                 receive {
-                    case zipped: Array[Byte] => unzip(basepath, zipped)
+                    case zipped: Array[Byte] => {
+                        log(DEBUG, "Receiving new and modified files")
+                        unzip(basepath, zipped)
+                    }
                 }
             }
         }

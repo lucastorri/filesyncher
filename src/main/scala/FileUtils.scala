@@ -6,6 +6,8 @@ import java.util.zip.{ZipOutputStream, ZipInputStream, ZipEntry}
 import java.io.{InputStream, OutputStream, FileInputStream, FileOutputStream, ByteArrayOutputStream, ByteArrayInputStream}
 import java.security.MessageDigest
 import co.torri.filesyncher.FileUtils._
+import co.torri.filesyncher.log
+import co.torri.filesyncher.LogLevel._
 
 
 object FileStatus extends Enumeration {
@@ -42,7 +44,7 @@ object FileUtils {
     
     def delete(files: List[File]): Unit = files.foreach{ f =>
         f.delete
-        debug("delete: " + f.getAbsolutePath)
+        //log(FILEOP, "delete: " + f.getAbsolutePath)
     }
     
     def zip(basepath: String, files: List[File]): Array[Byte] = {
@@ -51,7 +53,7 @@ object FileUtils {
         var byteout = new ByteArrayOutputStream
         var out = new ZipOutputStream(byteout)
         files.foreach { f =>
-            debug("zip: " + f.getAbsolutePath)
+            //log(FILEOP, "zip: " + f.getAbsolutePath)
             var in = new FileInputStream(f)
             out.putNextEntry(new ZipEntry(f.toString.replace(basepath, "")))
             
@@ -74,7 +76,7 @@ object FileUtils {
             var f = new File(dest.getAbsolutePath + File.separator + fixpath(entry.getName))
             f.getParentFile.mkdirs
             if (!f.exists) f.createNewFile
-            debug("unzip: " + f.getAbsolutePath)
+            //log(FILEOP, "unzip: " + f.getAbsolutePath)
             var fout = new FileOutputStream(f)
             streamcopy(zipinputstream, fout, buf)
             fout.close
@@ -94,6 +96,9 @@ object FileUtils {
             if (len > 0) out.write(buf, 0, len)
         } while (len > 0)
     }
+    /*{
+        Source.fromInputStream(in).copyToBuffer()
+    }*/
     
     def getFileFilter(exclude: String) = exclude match {
         case null | "" => AcceptAllFileFilter

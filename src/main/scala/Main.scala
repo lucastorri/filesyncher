@@ -19,12 +19,11 @@ object Sync {
         var clientbasepath = confs.get("client.basepath").toString.trim
         var defaultflow = confs.get("default.flow").toString.trim
         var defaultmonitor = confs.get("default.monitor").toString.trim
-        var includeonly = confs.get("include.only").toString.trim
         var exclude = confs.get("exclude").toString.trim
         
         var actor = args.toList match {
             case ("client" :: Nil) => {
-                var filter = getFileFilter(includeonly, exclude)
+                var filter = getFileFilter(exclude)
                 var client = new SyncClient(clientbasepath, serverip, tcpport, decodeSendToServer(defaultflow), filter, defaultmonitor)
                 debug("Server: " + serverip + ":" + tcpport)
                 spawn {

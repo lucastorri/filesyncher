@@ -93,11 +93,9 @@ object FileUtils {
         } while (len > 0)
     }
     
-    def getFileFilter(includeOnly: String, exclude: String) = (includeOnly, exclude) match {
-        case (null, null) | ("", "") | (null, "") | ("", null) => AcceptAllFileFilter
-        case (null, _) => new IncludeOrExludeFileFilter("", exclude)
-        case (_, null) => new IncludeOrExludeFileFilter(includeOnly, "")
-        case _ => new IncludeOrExludeFileFilter(includeOnly, exclude)
+    def getFileFilter(exclude: String) = exclude match {
+        case null | "" => AcceptAllFileFilter
+        case _ => new ExcludeFileFilter(exclude)
     }
 }
 
@@ -121,19 +119,10 @@ class FilesWatcher(path: String, filter: FileFilter, poltime: Long = 5000) {
     private def getLastFileList = recursiveListFiles(path, filter).map(f => (f, f.lastModified)).toMap
 }
 
-class IncludeOrExludeFileFilter(includeOnly: String, exclude: String) extends FileFilter {
-    
-    def accept(f: File) = {
-        if (includeOnly != "") {
-            includeOnly.split(";").map(r => f.getAbsolutePath.matches(toRegex(r))).reduceLeft(_||_)
-        } else {
-            !exclude.split(";").map(r => f.getAbsolutePath.matches(toRegex(r))).reduceLeft(_||_)
-        }
-    }
-    
+class ExcludeFileFilter(exclude: String) extends FileFilter {
+    def accept(f: File) = !exclude.split(";").map(r => f.getAbsolutePath.matches(toRegex(r))).reduceLeft(_||_)
     private def toRegex(str: String) = str.replace(".", "\\.").replace("*", ".*")
-    
-    override def toString = (includeOnly, exclude).toString
+    override def toString = exclude
 }
 
 object AcceptAllFileFilter extends FileFilter {

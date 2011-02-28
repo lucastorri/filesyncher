@@ -22,11 +22,10 @@ abstract class BaseActs(basepath: String) extends Actor {
         server ! ("hello", sendToServer, filter.toString)
     }
     
-    private val FilterRE = "\\((.*),(.*)\\)".r
     protected def waitclient: (OutputChannel[Any], Boolean, FileFilter) = {
         debug("=> waiting client")
         receive {
-            case ("hello", sendToServer: Boolean, FilterRE(includeOnly,exclude)) => return (sender, sendToServer, getFileFilter(includeOnly, exclude))
+            case ("hello", sendToServer: Boolean, exclude: String) => return (sender, sendToServer, getFileFilter(exclude))
             case a: Any => debug("No match with client message: " + a); return (null, false, null)
         }
     }

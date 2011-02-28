@@ -30,11 +30,11 @@ abstract class BaseActs(basepath: String) extends Actor {
         }
     }
     
-    protected def upload = {
+    protected def upload(filter: FileFilter) = {
         debug("=> upload")
         receive {
             case "list" => {
-                sender ! RelativePathFile(recursiveListFiles(basepath), basepath).mkString("\n")
+                sender ! RelativePathFile(recursiveListFiles(basepath, filter), basepath).mkString("\n")
                 receive {
                     case ("giveme", files: String) => {
                         var filelist = RelativePathFile(files, basepath).map(rf => new File(rf.fullPath))
@@ -45,13 +45,13 @@ abstract class BaseActs(basepath: String) extends Actor {
         }
     }
     
-    protected def download(server: OutputChannel[Any]) {
+    protected def download(server: OutputChannel[Any], filter: FileFilter) {
         debug("=> download")
         server ! "list"
         receive {
             case f: String => {
                 val serverFiles = RelativePathFile(f)
-                val localfiles = RelativePathFile(recursiveListFiles(basepath), basepath)
+                val localfiles = RelativePathFile(recursiveListFiles(basepath, filter), basepath)
                 val filesdiff = contentdiff(serverFiles, localfiles)
                 val newAndModified = filterNewAndModified(filesdiff).map(_._1).mkString("\n")
                 val deleted = filterDeleted(filesdiff).map(d => new File(d._2.fullPath))
@@ -86,12 +86,10 @@ class SyncServer(basepath: String, port: Int, monitor: String) extends BaseActs(
             var (sender, sendToServer, filter) = waitclient
             
             if (sendToServer) {
-                download(sender)
+                download(sender, filter)
             } else {
-                upload
-                debug("Waiting")
+                upload(filter)
                 parseMonitor(basepath, monitor, filter)()
-                debug("Finished waiting")
             }
         }
 
@@ -109,12 +107,10 @@ class SyncClient private(basepath: String, server: AbstractActor, var sendToServ
             sayhello(server, sendToServer, filter)
             
             if (sendToServer) {
-                upload
-                debug("Waiting")
+                upload(filter)
                 waitfor
-                debug("Finished waiting")
             } else {
-                download(server)
+                download(server, filter)
             }
         }
     }

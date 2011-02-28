@@ -32,16 +32,17 @@ object FileUtils {
         digest.digest(content(f)).map(_.asInstanceOf[Int]).sum
     }
     
-    def content(f: File) = {
+    def content(f: File) = try {
         var fin = new FileInputStream(f)
         var bout = new ByteArrayOutputStream
         streamcopy(fin, bout)
         fin.close
         bout.toByteArray
-    }
+    } catch { case _ => Array.ofDim[Byte](0) }
     
-    def delete(files: List[File]) {
-        files.foreach(_.delete)
+    def delete(files: List[File]): Unit = files.foreach{ f =>
+        f.delete
+        debug("delete: " + f.getAbsolutePath)
     }
     
     def zip(basepath: String, files: List[File]): Array[Byte] = {

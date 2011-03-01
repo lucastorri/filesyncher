@@ -4,7 +4,7 @@ import scala.concurrent.ops._
 import java.io._
 import java.util.Properties
 import scala.PartialFunction
-import co.torri.filesyncher.log
+import co.torri.filesyncher.{Log => log}
 import co.torri.filesyncher.LogLevel._
 
 object Sync {

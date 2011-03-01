@@ -11,7 +11,7 @@ import co.torri.filesyncher.BaseActs._
 import co.torri.filesyncher.RelativePathFile
 import co.torri.filesyncher.RelativePathFile._
 import java.io.{InputStream, OutputStream, FileInputStream, FileOutputStream, ByteArrayOutputStream, ByteArrayInputStream}
-import co.torri.filesyncher.log
+import co.torri.filesyncher.{Log => log}
 import co.torri.filesyncher.LogLevel._
 
 

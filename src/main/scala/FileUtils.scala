@@ -6,7 +6,7 @@ import java.util.zip.{ZipOutputStream, ZipInputStream, ZipEntry}
 import java.io.{InputStream, OutputStream, FileInputStream, FileOutputStream, ByteArrayOutputStream, ByteArrayInputStream}
 import java.security.MessageDigest
 import co.torri.filesyncher.FileUtils._
-import co.torri.filesyncher.log
+import co.torri.filesyncher.{Log => log}
 import co.torri.filesyncher.LogLevel._
 
 

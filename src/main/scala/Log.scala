@@ -7,7 +7,7 @@ object LogLevel extends Enumeration {
     val DEBUG  = Value("[DEBUG]")
 }
 
-object log {
+object Log {
     var on = true
     var level = LogLevel.INFO
     def apply(l: LogLevel.Value, str: String) = if (on && l.id <= level.id) {

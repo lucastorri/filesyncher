@@ -1,6 +1,7 @@
 package co.torri.filesyncher
 
 object LogLevel extends Enumeration {
+    val SEVERE = Value("[SEVERE]")
     val INFO   = Value("[INFO]")
     val FILEOP = Value("[FILE_OP]")
     val DEBUG  = Value("[DEBUG]")

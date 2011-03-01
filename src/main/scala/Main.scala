@@ -9,7 +9,8 @@ import co.torri.filesyncher.LogLevel._
 
 object Sync {
     
-    def main(args: Array[String]) = {
+    def main(args: Array[String]): Unit = {
+        
         var configFile = new File(System.getProperty("user.dir") + File.separator + "configs.properties")
         if (!configFile.exists) System.exit(1)
         
@@ -70,7 +71,7 @@ object Sync {
             }
             case _ => {
                 new SyncServer(serverbasepath, tcpport, defaultmonitor).start
-                log.level = FILEOP
+                log.level = DEBUG
                 log(INFO, "Server started")
             }
         }

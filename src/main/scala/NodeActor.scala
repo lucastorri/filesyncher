@@ -38,14 +38,17 @@ abstract class BaseActs(basepath: String) extends Actor {
             case 'list => {
                 log(DEBUG, "Listing files")
                 sender ! RelativePathFile(recursiveListFiles(basepath, filter), basepath).mkString("\n")
+                log(DEBUG, "File list sent")
                 receive {
                     case ('giveme, files: String) => {
                         var filelist = RelativePathFile(files, basepath).map(rf => new File(rf.fullPath))
                         log(DEBUG, "Files requested:\n" + filelist.mkString("\n"))
                         sender ! zip(basepath, filelist)
                     }
+                    case a: Any => log(SEVERE, "Unexpected protocol error. Received " + a)
                 }
             }
+            case a: Any => log(SEVERE, "Unexpected protocol error. Received " + a)
         }
     }
     
@@ -69,8 +72,10 @@ abstract class BaseActs(basepath: String) extends Actor {
                         log(DEBUG, "Receiving new and modified files")
                         unzip(basepath, zipped)
                     }
+                    case a: Any => log(SEVERE, "Unexpected protocol error. Received " + a)
                 }
             }
+            case a: Any => log(SEVERE, "Unexpected protocol error. Received " + a)
         }
     }
 

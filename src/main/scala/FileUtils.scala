@@ -8,6 +8,7 @@ import java.security.MessageDigest
 import co.torri.filesyncher.FileUtils._
 import co.torri.filesyncher.{Log => log}
 import co.torri.filesyncher.LogLevel._
+import resource._
 
 
 object FileStatus extends Enumeration {
@@ -44,25 +45,24 @@ object FileUtils {
     
     def delete(files: List[File]): Unit = files.foreach{ f =>
         f.delete
-        //log(FILEOP, "delete: " + f.getAbsolutePath)
+        log(FILEOP, "delete: " + f.getAbsolutePath)
     }
     
     def zip(basepath: String, files: List[File]): Array[Byte] = {
         if (files.size == 0) return Array[Byte]()
+        
         var buf = Array.ofDim[Byte](1024)
         var byteout = new ByteArrayOutputStream
-        var out = new ZipOutputStream(byteout)
-        files.foreach { f =>
-            //log(FILEOP, "zip: " + f.getAbsolutePath)
-            var in = new FileInputStream(f)
-            out.putNextEntry(new ZipEntry(f.toString.replace(basepath, "")))
-            
-            streamcopy(in, out, buf)
-            
-            out.closeEntry()
-            in.close()
+        managed(new ZipOutputStream(byteout)).map { out =>
+            files.foreach { f =>
+                log(FILEOP, "zip: " + f.getAbsolutePath)
+                managed(new FileInputStream(f)) { in =>
+                    out.putNextEntry(new ZipEntry(f.toString.replace(basepath, "")))
+                    streamcopy(in, out, buf)
+                    out.closeEntry()
+                }
+            } 
         }
-        out.close
         byteout.toByteArray
     }
     
@@ -76,7 +76,7 @@ object FileUtils {
             var f = new File(dest.getAbsolutePath + File.separator + fixpath(entry.getName))
             f.getParentFile.mkdirs
             if (!f.exists) f.createNewFile
-            //log(FILEOP, "unzip: " + f.getAbsolutePath)
+            log(FILEOP, "unzip: " + f.getAbsolutePath)
             var fout = new FileOutputStream(f)
             streamcopy(zipinputstream, fout, buf)
             fout.close

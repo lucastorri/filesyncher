@@ -1,6 +1,7 @@
 package co.torri.filesyncher
 
 import scala.util.matching.Regex
+import scala.io._
 import java.io.{File, FileFilter}
 import java.util.zip.{ZipOutputStream, ZipInputStream, ZipEntry}
 import java.io.{InputStream, OutputStream, FileInputStream, FileOutputStream, ByteArrayOutputStream, ByteArrayInputStream}
@@ -30,10 +31,7 @@ object FileUtils {
     
     def recursiveListFiles(path: String, filter: FileFilter = AcceptAllFileFilter): List[File] = recursiveListTree(path).filter(f => f.isFile && filter.accept(f)).toList
     
-    def filehash(f: File) = {
-        var digest = MessageDigest.getInstance("MD5")
-        digest.digest(content(f)).map(_.asInstanceOf[Int]).sum
-    }
+    def filehash(f: File) = MessageDigest.getInstance("MD5").digest(content(f)).map(_.asInstanceOf[Int]).sum
     
     def content(f: File) = try {
         var fin = new FileInputStream(f)
@@ -56,7 +54,7 @@ object FileUtils {
         managed(new ZipOutputStream(byteout)).map { out =>
             files.foreach { f =>
                 log(FILEOP, "zip: " + f.getAbsolutePath)
-                managed(new FileInputStream(f)) { in =>
+                managed(new FileInputStream(f)).map { in =>
                     out.putNextEntry(new ZipEntry(f.toString.replace(basepath, "")))
                     streamcopy(in, out, buf)
                     out.closeEntry()

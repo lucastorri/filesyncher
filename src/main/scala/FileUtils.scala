@@ -127,7 +127,7 @@ class FilesWatcher(path: String, filter: FileFilter, poltime: Long = 5000) {
 }
 
 class ExcludeFileFilter(exclude: String) extends FileFilter {
-    private val windowsFileRegex =  new Regex("^\\w:")
+    private val windowsFileRegex = "^\\w:".r
     def accept(f: File) = !exclude.split(";").map(r => toUnixPath(f.getAbsolutePath).matches(toRegex(r))).reduceLeft(_||_)
     private def toRegex(str: String) = str.replace(".", "\\.").replace("*", ".*")
     private def toUnixPath(path: String) = windowsFileRegex.replaceAllIn(path, "").replace("\\", "/")

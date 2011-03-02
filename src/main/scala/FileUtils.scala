@@ -11,6 +11,7 @@ import co.torri.filesyncher.FileUtils._
 import co.torri.filesyncher.{Log => log}
 import co.torri.filesyncher.LogLevel._
 import resource._
+import scala.annotation.tailrec
 
 
 object FileStatus extends Enumeration {
@@ -83,15 +84,12 @@ object FileUtils {
     def fixpath(path: String) = path.replace("/", JFile.separator).replace("""\""", JFile.separator)
     
     def streamcopy(in: InputStream, out: OutputStream, buf: Array[Byte] = Array.ofDim[Byte](1024)) {
-        var len = 0
-        do {
-            len = in.read(buf)
-            if (len > 0) out.write(buf, 0, len)
-        } while (len > 0)
+        @tailrec def read(len: Int): Unit = if (len > 0) {
+            out.write(buf, 0, len)
+            read(in.read(buf))
+        }
+        read(in.read(buf))
     }
-    /*{
-        Source.fromInputStream(in).copyToBuffer()
-    }*/
     
     def getFileFilter(exclude: String) = exclude match {
         case null | "" => AcceptAllFileFilter

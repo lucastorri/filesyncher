@@ -2,7 +2,8 @@ package co.torri.filesyncher
 
 import scala.util.matching.Regex
 import scala.io._
-import java.io.{File, FileFilter}
+import scala.tools.nsc.io.File
+import java.io.{File => JFile, FileFilter}
 import java.util.zip.{ZipOutputStream, ZipInputStream, ZipEntry}
 import java.io.{InputStream, OutputStream, FileInputStream, FileOutputStream, ByteArrayOutputStream, ByteArrayInputStream}
 import java.security.MessageDigest
@@ -22,31 +23,25 @@ object FileStatus extends Enumeration {
 
 object FileUtils {
     
-    implicit def string2File(str: String) = new File(str)
+    implicit def string2File(str: String) = new JFile(str)
     
-    def recursiveListTree(f: File): Array[File] = {
+    def recursiveListTree(f: JFile): Array[JFile] = {
         val these = f.listFiles
         these ++ these.filter(_.isDirectory).flatMap(recursiveListTree)
     }
     
-    def recursiveListFiles(path: String, filter: FileFilter = AcceptAllFileFilter): List[File] = recursiveListTree(path).filter(f => f.isFile && filter.accept(f)).toList
+    def recursiveListFiles(path: String, filter: FileFilter = AcceptAllFileFilter): List[JFile] = recursiveListTree(path).filter(f => f.isFile && filter.accept(f)).toList
     
-    def filehash(f: File) = MessageDigest.getInstance("MD5").digest(content(f)).map(_.asInstanceOf[Int]).sum
+    def filehash(f: JFile) = MessageDigest.getInstance("MD5").digest(content(f)).map(_.asInstanceOf[Int]).sum
     
-    def content(f: File) = try {
-        var fin = new FileInputStream(f)
-        var bout = new ByteArrayOutputStream
-        streamcopy(fin, bout)
-        fin.close
-        bout.toByteArray
-    } catch { case _ => Array.ofDim[Byte](0) }
+    def content(f: JFile) = try { new File(f).bytes.toArray } catch { case _ => Array[Byte]() }
     
-    def delete(files: List[File]): Unit = files.foreach{ f =>
+    def delete(files: List[JFile]): Unit = files.foreach{ f =>
         f.delete
         log(FILEOP, "delete: " + f.getAbsolutePath)
     }
     
-    def zip(basepath: String, files: List[File]): Array[Byte] = {
+    def zip(basepath: String, files: List[JFile]): Array[Byte] = {
         if (files.size == 0) return Array[Byte]()
         
         var buf = Array.ofDim[Byte](1024)
@@ -64,14 +59,14 @@ object FileUtils {
         byteout.toByteArray
     }
     
-    def unzip(dest: File, zip: Array[Byte]) {
+    def unzip(dest: JFile, zip: Array[Byte]) {
         require(dest.isDirectory)
         var buf = Array.ofDim[Byte](1024)
         var zipinputstream = new ZipInputStream(new ByteArrayInputStream(zip))
         
         var entry = zipinputstream.getNextEntry
         while (entry != null) {
-            var f = new File(dest.getAbsolutePath + File.separator + fixpath(entry.getName))
+            var f = new JFile(dest.getAbsolutePath + JFile.separator + fixpath(entry.getName))
             f.getParentFile.mkdirs
             if (!f.exists) f.createNewFile
             log(FILEOP, "unzip: " + f.getAbsolutePath)
@@ -85,7 +80,7 @@ object FileUtils {
         zipinputstream.close
     }
     
-    def fixpath(path: String) = path.replace("/", File.separator).replace("""\""", File.separator)
+    def fixpath(path: String) = path.replace("/", JFile.separator).replace("""\""", JFile.separator)
     
     def streamcopy(in: InputStream, out: OutputStream, buf: Array[Byte] = Array.ofDim[Byte](1024)) {
         var len = 0
@@ -116,7 +111,7 @@ class FilesWatcher(path: String, filter: FileFilter, poltime: Long = 5000) {
         }
     }
     
-    private def noneAddedOrRemoved(newFiles: Map[File, Long]) = {
+    private def noneAddedOrRemoved(newFiles: Map[JFile, Long]) = {
         filestimestamp.keys == newFiles.keys &&
         filestimestamp.filter(p => p._2 != newFiles(p._1)).isEmpty
     }
@@ -126,13 +121,13 @@ class FilesWatcher(path: String, filter: FileFilter, poltime: Long = 5000) {
 
 class ExcludeFileFilter(exclude: String) extends FileFilter {
     private val windowsFileRegex = "^\\w:".r
-    def accept(f: File) = !exclude.split(";").map(r => toUnixPath(f.getAbsolutePath).matches(toRegex(r))).reduceLeft(_||_)
+    def accept(f: JFile) = !exclude.split(";").map(r => toUnixPath(f.getAbsolutePath).matches(toRegex(r))).reduceLeft(_||_)
     private def toRegex(str: String) = str.replace(".", "\\.").replace("*", ".*")
     private def toUnixPath(path: String) = windowsFileRegex.replaceAllIn(path, "").replace("\\", "/")
     override def toString = exclude
 }
 
 object AcceptAllFileFilter extends FileFilter {
-    def accept(f: File) = true
+    def accept(f: JFile) = true
     override def toString = "(,)"
 }

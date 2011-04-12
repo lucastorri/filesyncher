@@ -42,22 +42,23 @@ object FileUtils {
         log(FILEOP, "delete: " + f.getAbsolutePath)
     }
     
-    def zip(basepath: String, files: List[JFile]): Array[Byte] = {
-        if (files.size == 0) return Array[Byte]()
-        
-        var buf = Array.ofDim[Byte](1024)
-        var byteout = new ByteArrayOutputStream
-        managed(new ZipOutputStream(byteout)).map { out =>
-            files.foreach { f =>
-                log(FILEOP, "zip: " + f.getAbsolutePath)
-                managed(new FileInputStream(f)).map { in =>
-                    out.putNextEntry(new ZipEntry(f.toString.replace(basepath, "")))
-                    streamcopy(in, out, buf)
-                    out.closeEntry()
+    def zip(basepath: String, files: List[JFile]): Array[Byte] = files.size match {
+        case 0 => Array[Byte]()
+        case _ => {
+            var buf = Array.ofDim[Byte](1024)
+            var byteout = new ByteArrayOutputStream
+            managed(new ZipOutputStream(byteout)).map { out =>
+                files.foreach { f =>
+                    log(FILEOP, "zip: " + f.getAbsolutePath)
+                    managed(new FileInputStream(f)).map { in =>
+                        out.putNextEntry(new ZipEntry(f.toString.replace(basepath, "")))
+                        streamcopy(in, out, buf)
+                        out.closeEntry()
+                    }
                 }
-            } 
+            }
+            byteout.toByteArray
         }
-        byteout.toByteArray
     }
     
     def unzip(dest: JFile, zip: Array[Byte]) {

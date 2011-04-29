@@ -123,7 +123,7 @@ class SyncClient private(basepath: String, server: AbstractActor, var sendToServ
             
             if (sendToServer) {
                 upload(filter)
-                waitfor
+                waitfor()
             } else {
                 download(server, filter)
             }

@@ -10,7 +10,6 @@ import java.security.MessageDigest
 import co.torri.filesyncher.FileUtils._
 import co.torri.filesyncher.{Log => log}
 import co.torri.filesyncher.LogLevel._
-import resource._
 import scala.annotation.tailrec
 
 
@@ -47,16 +46,16 @@ object FileUtils {
         case _ => {
             var buf = Array.ofDim[Byte](1024)
             var byteout = new ByteArrayOutputStream
-            managed(new ZipOutputStream(byteout)).map { out =>
-                files.foreach { f =>
-                    log(FILEOP, "zip: " + f.getAbsolutePath)
-                    managed(new FileInputStream(f)).map { in =>
-                        out.putNextEntry(new ZipEntry(f.toString.replace(basepath, "")))
-                        streamcopy(in, out, buf)
-                        out.closeEntry()
-                    }
-                }
+            var out = new ZipOutputStream(byteout)
+	 	    files.foreach { f =>
+                log(FILEOP, "zip: " + f.getAbsolutePath)
+    	 	    var in = new FileInputStream(f)
+    	 	    out.putNextEntry(new ZipEntry(f.toString.replace(basepath, "")))
+    	 	    streamcopy(in, out, buf)
+    	 	    out.closeEntry()
+	 	        in.close()
             }
+            out.close
             byteout.toByteArray
         }
     }

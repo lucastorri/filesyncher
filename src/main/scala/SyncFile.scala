@@ -14,8 +14,8 @@ object SyncFile {
   }
 
   def apply(syncpath: String, relativePath: String, md5: String, children: List[(String, String)]) = {
-    val childrenFiles = children.map{ case (path, md5) => new RemoteSyncFile(md5, syncpath, None, path)}.toArray
-    new RemoteSyncFile(md5, syncpath, Some(childrenFiles), relativePath)
+    val childrenFiles = children.map{ case (path, md5) => new RemoteSyncFile(md5, syncpath, None, path) }.toArray
+    new RemoteSyncFile(md5, syncpath, Some(childrenFiles.asInstanceOf[Array[SyncFile]]), relativePath)
   }
 
 }

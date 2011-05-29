@@ -20,7 +20,8 @@ class SyncFileSetTest extends FileSyncherSpec {
     SyncFileSet(file).toString should be (
     """
     |123 /path/a.txt
-    |456 /path/to/b.txt
+    |456 /path/b.txt
+    |789 /path/to/b.txt
     """.stripMargin.trim
     )
   }
@@ -36,7 +37,8 @@ class SyncFileSetTest extends FileSyncherSpec {
     file = mock[SyncFile]
     set = Array(
       new RemoteSyncFile("123", "/some", None, "/path/a.txt"),
-      new RemoteSyncFile("456", "/some", None, "/path/to/b.txt")
+      new RemoteSyncFile("456", "/some", None, "/path/b.txt"),
+      new RemoteSyncFile("789", "/some", None, "/path/to/c.txt")
     )
     when(file.children) thenReturn(Some(set))
   }

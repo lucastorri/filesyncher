@@ -3,11 +3,6 @@ package co.torri.filesyncher
 import java.io.{File => JFile}
 import java.security.MessageDigest
 
-object DefaultFileReader {
-
-  def read(f: JFile) = Array[Byte]()
-}
-
 object SyncFile {
 
   type FileReader = { def read(f: JFile): Array[Byte] }
@@ -18,7 +13,10 @@ object SyncFile {
     new LocalSyncFile(file, sp, reader)
   }
 
-  def apply(syncpath: String, md5: String, relativePath: String, children: List[(String, String)]) = None
+  def apply(syncpath: String, relativePath: String, md5: String, children: List[(String, String)]) = {
+    val childrenFiles = children.map{ case (path, md5) => new RemoteSyncFile(md5, syncpath, None, path)}.toArray
+    new RemoteSyncFile(md5, syncpath, Some(childrenFiles), relativePath)
+  }
 
 }
 
@@ -32,15 +30,21 @@ sealed trait SyncFile {
   override def toString = relativePath
 }
 
-class RemoteSyncFile(val md5sum: String, val syncpath: String, val children: Option[Array[SyncFile]], val relativePath: String) extends SyncFile
+private[filesyncher] class RemoteSyncFile(
+  val md5sum: String,
+  val syncpath: String,
+  val children: Option[Array[SyncFile]],
+  val relativePath: String
+) extends SyncFile
 
-class LocalSyncFile (file: JFile, val syncpath: String, contentReader: SyncFile.FileReader) extends SyncFile {
+private[filesyncher] class LocalSyncFile(
+  file: JFile,
+  val syncpath: String,
+  contentReader: SyncFile.FileReader
+) extends SyncFile {
 
-  val (relativePath, absolutePath) = {
-    val FilePathMatcher = ( "^file:(" + syncpath + "(.*))$" ).r
-    val FilePathMatcher(absolute, relative) = file.toURI.toString
-    (relative, absolute)
-  }
+  private val FilePathMatcher = ( "^file:(" + syncpath + "(.*))$" ).r
+  val FilePathMatcher(absolutePath, relativePath) = file.toURI.toString
 
   def content = contentReader.read(file)
 
@@ -53,5 +57,5 @@ class LocalSyncFile (file: JFile, val syncpath: String, contentReader: SyncFile.
     }
     Some(recursiveListTree(file).map(SyncFile(_, syncpath, contentReader)))
   }
-
 }
+

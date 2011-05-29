@@ -26,3 +26,6 @@ test/project/plugins/lib_managed/
 test/project/plugins/src_managed/
 test/project/plugins/target/
 test/target
+.idea/
+.idea/*
+*.iml

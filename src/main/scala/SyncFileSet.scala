@@ -1,15 +1,44 @@
 package co.torri.filesyncher
 
-object SyncFileSet {
+import scala.collection.GenSeq
 
-    def apply(baseDir: SyncFile) = new SyncFileSet(baseDir.children.getOrElse(Array[SyncFile]()).toList.toSet)
+object SyncFileStatus extends Enumeration {
+  val DELETED = Value('D')
+  val ADDED = Value('A')
+  val MODIFIED = Value('M')
+  val SAME = Value('S')
 }
 
-class SyncFileSet private[SyncFileSet](file: Set[SyncFile]) {
+object SyncFileSet {
 
-  private var set = file
+    def apply(baseDir: SyncFile) = new SyncFileSet(baseDir.children.getOrElse(Array[SyncFile]()).toList.par)
+}
 
-  def fileSet = set
+class SyncFileSet private[SyncFileSet](val fileSet: GenSeq[SyncFile]) {
 
-  override def toString() = set.map(f => f.md5sum + " " + f.relativePath).mkString("\n")
+  def exclude(regex: String) = n(fileSet.filterNot(_.relativePath.matches(regex)))
+
+  def diff(other: SyncFileSet): Map[SyncFileStatus.Value, SyncFileSet] = {
+    val added = other -- this
+    val deleted = this -- other
+    val modified = this / other
+    val same = n(fileSet.filterNot(e => added.fileSet.exists(e ==) || deleted.fileSet.exists(e ==) || modified.fileSet.exists(e ==)))
+    import SyncFileStatus._
+    Map(
+      SAME     -> same,
+      ADDED    -> added,
+      DELETED  -> deleted,
+      MODIFIED -> modified
+    )
+  }
+
+  def --(other: SyncFileSet) = n(fileSet.filterNot(e => other.fileSet.exists(e ==)))
+
+  def ++(other: SyncFileSet) = n(fileSet ++ other.fileSet)
+
+  def /(other: SyncFileSet) = n(fileSet.filter(e => other.fileSet.find(_ == e).map(_.md5sum != e.md5sum).getOrElse(false)))
+
+  private def n(set: GenSeq[SyncFile]) = new SyncFileSet(set)
+
+  override def toString() = fileSet.map(f => f.md5sum + " " + f.relativePath).mkString("\n")
 }

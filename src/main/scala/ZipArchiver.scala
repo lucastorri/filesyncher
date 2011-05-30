@@ -5,7 +5,7 @@ import java.util.zip.{ZipOutputStream, ZipInputStream, ZipEntry}
 import java.net.URI
 import scalax.io._
 
-import scala.annotation.tailrec
+import co.torri.filesyncher.StreamCopier.streamcopy
 
 object ZipArchiver {
 
@@ -39,14 +39,6 @@ object ZipArchiver {
       entry = zipStream.getNextEntry
     }
     zipStream.close
-  }
-
-  private def streamcopy(in: InputStream, out: OutputStream, buf: Array[Byte] = Array.ofDim[Byte](1024)) {
-    @tailrec def read(len: Int): Unit = if (len > 0) {
-      out.write(buf, 0, len)
-      read(in.read(buf))
-    }
-    read(in.read(buf))
   }
 
   implicit def outStream2ZipArchiver[T <: OutputStream](out: T) = new {

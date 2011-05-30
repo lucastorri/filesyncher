@@ -49,5 +49,13 @@ object ZipArchiver {
     read(in.read(buf))
   }
 
+  implicit def outStream2ZipArchiver[T >: OutputStream](out: T) = new {
+    def zip(files: SyncFileSet) = ZipArchiver.zip(out.asInstanceOf[OutputStream], files)
+  }
+
+implicit def inStream2ZipArchiver[T >: InputStream](in: T) = new {
+    def unzip(outputFolder: URI) = ZipArchiver.unzip(in.asInstanceOf[InputStream], outputFolder)
+  }
 
 }
+

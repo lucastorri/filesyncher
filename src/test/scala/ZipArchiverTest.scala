@@ -1,6 +1,7 @@
 package co.torri.filesyncher
 
 import java.io.{File => JFile, FileOutputStream, ByteArrayOutputStream, ByteArrayInputStream}
+import co.torri.filesyncher.ZipArchiver._
 
 import org.mockito.Mockito._
 
@@ -15,12 +16,12 @@ class ZipArchiverTest extends FileSyncherSpec {
       testResourcesFolder, testResourcesFolder.toString
     ))
     val out = new ByteArrayOutputStream
-    ZipArchiver.zip(out, fileset)
+    out.zip(fileset)
 
     var tmpFolder = new JFile(System.getProperty("java.io.tmpdir") + JFile.separator + System.currentTimeMillis)
     tmpFolder.mkdirs
     val in = new ByteArrayInputStream(out.toByteArray)
-    ZipArchiver.unzip(in, tmpFolder.toURI)
+    in.unzip(tmpFolder.toURI)
 
     filesListFor(testResourcesFolder) should be === (filesListFor(tmpFolder))
   }

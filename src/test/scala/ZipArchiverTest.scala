@@ -19,14 +19,14 @@ class ZipArchiverTest extends FileSyncherSpec {
 
     Some(new ByteArrayOutputStream().zip(fileset)).map(out => new ByteArrayInputStream(out.toByteArray).unzip(tmpFolder.toURI))
 
-    filesListFor(testResourcesFolder) should be === (filesListFor(tmpFolder))
+    filesIn(testResourcesFolder) should be === (filesIn(tmpFolder))
   }
 
-  def filesListFor(dir: JFile) = filesIn(dir).map(_.toString.replace(dir.toString, "")).toList.toSet
+  def filesIn(dir: JFile) = listFilesIn(dir).map(_.toString.replace(dir.toString, "")).toList.toSet
 
-  def filesIn(f: JFile): Array[JFile] = {
+  def listFilesIn(f: JFile): Array[JFile] = {
     val these = f.listFiles
-    these ++ these.filter(_.isDirectory).flatMap(filesIn)
+    these ++ these.filter(_.isDirectory).flatMap(listFilesIn)
   }
 
 }

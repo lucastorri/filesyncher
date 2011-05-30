@@ -30,7 +30,7 @@ class SyncFileTest extends FileSyncherSpec {
     when(dir.isDirectory) thenReturn(true)
     when(dir.listFiles) thenReturn(children)
 
-    syncfile(dir).children.get.sameElements(children.map(c => syncfile(c))) should be (true)
+    syncfile(dir).children.get.sameElements(children.filter(_.isFile).map(c => syncfile(c))) should be (true)
   }
 
   it should "return None for children when its not a directory" in {

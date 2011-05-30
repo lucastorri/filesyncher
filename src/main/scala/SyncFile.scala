@@ -25,6 +25,9 @@ sealed trait SyncFile {
   def syncpath: String
   def children: Option[Array[SyncFile]]
   def relativePath: String
+  def absolutePath: String
+
+  def content: Option[Array[Byte]] = None
 
   override def equals(o: Any) = o.isInstanceOf[SyncFile] && o.asInstanceOf[SyncFile].relativePath == relativePath
   override def toString = relativePath
@@ -34,8 +37,16 @@ private[filesyncher] class RemoteSyncFile(
   val md5sum: String,
   val syncpath: String,
   val children: Option[Array[SyncFile]],
-  val relativePath: String
-) extends SyncFile
+  val relativePath: String,
+  val absolutePath: String
+) extends SyncFile {
+  def this(
+    md5sum: String,
+    syncpath: String,
+    children: Option[Array[SyncFile]],
+    relativePath: String
+  ) = this(md5sum, syncpath, children, relativePath, syncpath + relativePath)
+}
 
 private[filesyncher] class LocalSyncFile(
   file: JFile,
@@ -46,16 +57,16 @@ private[filesyncher] class LocalSyncFile(
   private val FilePathMatcher = ( "^file:(" + syncpath + "(.*))$" ).r
   val FilePathMatcher(absolutePath, relativePath) = file.toURI.toString
 
-  def content = contentReader.read(file)
+  override def content = Some(contentReader.read(file))
 
-  def md5sum = BigInt(1,MessageDigest.getInstance("MD5").digest(content)).toString(16)
+  def md5sum = BigInt(1,MessageDigest.getInstance("MD5").digest(content.get)).toString(16)
 
   def children = if (!file.isDirectory) None else {
     def recursiveListTree(f: JFile): Array[JFile] = {
         val these = f.listFiles
         these ++ these.filter(_.isDirectory).flatMap(recursiveListTree)
     }
-    Some(recursiveListTree(file).map(SyncFile(_, syncpath, contentReader)))
+    Some(recursiveListTree(file).filter(_.isFile).map(SyncFile(_, syncpath, contentReader)))
   }
 }
 

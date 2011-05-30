@@ -2,13 +2,6 @@ package co.torri.filesyncher
 
 import scala.collection.GenSeq
 
-object SyncFileStatus extends Enumeration {
-  val DELETED = Value('D')
-  val ADDED = Value('A')
-  val MODIFIED = Value('M')
-  val SAME = Value('S')
-}
-
 object SyncFileSet {
 
     def apply(baseDir: SyncFile) = new SyncFileSet(baseDir.children.getOrElse(Array[SyncFile]()).toList.par)

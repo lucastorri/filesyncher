@@ -5,8 +5,6 @@ import java.security.MessageDigest
 
 object SyncFile {
 
-  type FileReader = { def read(f: JFile): Array[Byte] }
-
   def apply(file: JFile, syncpath: String, reader: FileReader = DefaultFileReader) = {
     val sp = if (syncpath.endsWith(JFile.separator)) syncpath.slice(0, syncpath.size - JFile.separator.size)
              else syncpath
@@ -51,7 +49,7 @@ private[filesyncher] class RemoteSyncFile(
 private[filesyncher] class LocalSyncFile(
   file: JFile,
   val syncpath: String,
-  contentReader: SyncFile.FileReader
+  contentReader: FileReader
 ) extends SyncFile {
 
   private val FilePathMatcher = ( "^file:(" + syncpath + "(.*))$" ).r

@@ -12,16 +12,12 @@ class ZipArchiverTest extends FileSyncherSpec {
   it should "compress and decompress zip files" in {
 
     val testResourcesFolder = new JFile(this.getClass.getClassLoader.getResource("files").toURI).getParentFile
-    val fileset = SyncFileSet(SyncFile(
-      testResourcesFolder, testResourcesFolder.toString
-    ))
-    val out = new ByteArrayOutputStream
-    out.zip(fileset)
+    val fileset = SyncFileSet(SyncFile(testResourcesFolder, testResourcesFolder.toString))
 
     var tmpFolder = new JFile(System.getProperty("java.io.tmpdir") + JFile.separator + System.currentTimeMillis)
     tmpFolder.mkdirs
-    val in = new ByteArrayInputStream(out.toByteArray)
-    in.unzip(tmpFolder.toURI)
+
+    Some(new ByteArrayOutputStream().zip(fileset)).map(out => new ByteArrayInputStream(out.toByteArray).unzip(tmpFolder.toURI))
 
     filesListFor(testResourcesFolder) should be === (filesListFor(tmpFolder))
   }
